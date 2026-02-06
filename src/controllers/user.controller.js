@@ -13,6 +13,11 @@ exports.getAllUsers = async (req, res) => {
   res.json(users);
 };
 
+exports.getUserCount = async (req, res) => {
+  const totalUsers = await User.countDocuments();
+  res.json({ totalUsers });
+};
+
 exports.getMe = async (req, res) => {
   const user = await User.findById(req.user.id).select("-password");
   if (!user) return res.status(404).json({ message: "User not found" });

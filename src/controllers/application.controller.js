@@ -54,6 +54,27 @@ exports.getAllApplications = async (req, res) => {
   res.json(apps);
 };
 
+exports.getStatusCounts = async (req, res) => {
+  const [pending, approved, rejected] = await Promise.all([
+    Application.countDocuments({ status: "pending" }),
+    Application.countDocuments({ status: "approved" }),
+    Application.countDocuments({ status: "rejected" })
+  ]);
+
+  res.json({ pending, approved, rejected });
+};
+
+exports.getUsersOnLeaveCount = async (req, res) => {
+  const now = new Date();
+  const totalUsersOnLeave = await Application.distinct("user", {
+    status: "approved",
+    startDate: { $lte: now },
+    endDate: { $gte: now }
+  });
+
+  res.json({ totalUsersOnLeave: totalUsersOnLeave.length });
+};
+
 exports.updateStatus = async (req, res) => {
   const app = await Application.findByIdAndUpdate(
     req.params.id,
