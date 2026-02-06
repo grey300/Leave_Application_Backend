@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const bcrypt = require("bcryptjs");
 
 const pickUpdateFields = (body) => {
   const updates = {};
@@ -29,4 +30,25 @@ exports.updateMe = async (req, res) => {
   }).select("-password");
 
   res.json(user);
+};
+
+exports.changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword)
+    return res.status(400).json({ message: "Current and new password required" });
+
+  const user = await User.findById(req.user.id);
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  const isMatch = await bcrypt.compare(currentPassword, user.password);
+  if (!isMatch) return res.status(400).json({ message: "Current password incorrect" });
+
+  if (currentPassword === newPassword)
+    return res.status(400).json({ message: "New password must be different" });
+
+  const hash = await bcrypt.hash(newPassword, 10);
+  user.password = hash;
+  await user.save();
+
+  res.json({ message: "Password updated" });
 };
