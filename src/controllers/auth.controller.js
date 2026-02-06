@@ -3,11 +3,39 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { createTransporter } = require("../config/mail");
 
+const cloudinary = require("../config/cloudinary");
+
+const MAX_PROFILE_PIC_BYTES = 5 * 1024 * 1024;
+
 exports.signup = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, profilePic, profilePicContentType } = req.body;
   const hash = await bcrypt.hash(password, 10);
-  const user = await User.create({ name, email, password: hash });
-  res.json(user);
+
+  let profilePicUrl;
+  if (profilePic) {
+    const profilePicBuffer = Buffer.from(profilePic, "base64");
+    if (profilePicBuffer.length > MAX_PROFILE_PIC_BYTES) {
+      return res.status(400).json({ message: "Profile picture must be 5MB or smaller" });
+    }
+
+    const uploadResult = await cloudinary.uploader.upload(
+      `data:${profilePicContentType || "image/jpeg"};base64,${profilePic}`,
+      { folder: "profile-pictures" }
+    );
+
+    profilePicUrl = uploadResult.secure_url;
+  }
+
+  const user = await User.create({
+    name,
+    email,
+    password: hash,
+    ...(profilePicUrl ? { profilePicUrl } : {})
+  });
+
+  const response = user.toObject();
+  delete response.password;
+  res.json(response);
 };
 
 exports.login = async (req, res) => {
