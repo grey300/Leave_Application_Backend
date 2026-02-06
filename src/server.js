@@ -11,7 +11,8 @@ connectDB();
 
 // Middlewares
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: "6mb" }));
+app.use(express.urlencoded({ limit: "6mb", extended: true }));
 app.use(cookieParser());
 
 // Routes
